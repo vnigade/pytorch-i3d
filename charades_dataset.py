@@ -50,7 +50,7 @@ def load_flow_frames(image_dir, vid, start, num):
         sc = 1+d/min(w,h)
         imgx = cv2.resize(imgx,dsize=(0,0),fx=sc,fy=sc)
         imgy = cv2.resize(imgy,dsize=(0,0),fx=sc,fy=sc)
-        
+
     imgx = (imgx/255.)*2 - 1
     imgy = (imgy/255.)*2 - 1
     img = np.asarray([imgx, imgy]).transpose([1,2,0])

@@ -43,14 +43,14 @@ def load_flow_frames(image_dir, vid, start, num):
   for i in range(start, start+num):
     imgx = cv2.imread(os.path.join(image_dir, vid, vid+'-'+str(i).zfill(6)+'x.jpg'), cv2.IMREAD_GRAYSCALE)
     imgy = cv2.imread(os.path.join(image_dir, vid, vid+'-'+str(i).zfill(6)+'y.jpg'), cv2.IMREAD_GRAYSCALE)
-    
+  
     w,h = imgx.shape
     if w < 224 or h < 224:
         d = 224.-min(w,h)
         sc = 1+d/min(w,h)
         imgx = cv2.resize(imgx,dsize=(0,0),fx=sc,fy=sc)
         imgy = cv2.resize(imgy,dsize=(0,0),fx=sc,fy=sc)
-        
+    
     imgx = (imgx/255.)*2 - 1
     imgy = (imgy/255.)*2 - 1
     img = np.asarray([imgx, imgy]).transpose([1,2,0])
