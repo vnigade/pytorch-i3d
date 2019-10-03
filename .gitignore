@@ -1,0 +1,6 @@
+**/dump_scores
+**/results
+**/Pipfile*
+**/cscope*
+**/.python-version
+**/*.diff

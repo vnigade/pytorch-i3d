@@ -46,7 +46,7 @@ def run(max_steps=64e3, mode='rgb', root='/ssd2/charades/Charades_v1_rgb', split
     dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=4, pin_memory=True)
 
     val_dataset = Dataset(split, 'testing', root, mode, test_transforms, num=-1, save_dir=save_dir)
-    val_dataloader = torch.utils.data.DataLoader(val_dataset, batch_size=batch_size, shuffle=True, num_workers=4, pin_memory=True)    
+    val_dataloader = torch.utils.data.DataLoader(val_dataset, batch_size=batch_size, shuffle=True, num_workers=4, pin_memory=True)
 
     dataloaders = {'train': dataloader, 'val': val_dataloader}
     datasets = {'train': dataset, 'val': val_dataset}
@@ -90,11 +90,12 @@ def run(max_steps=64e3, mode='rgb', root='/ssd2/charades/Charades_v1_rgb', split
             output_dict = defaultdict(lambda: defaultdict(list))
             idx = 0
             while window_end < t:
-                ip = Variable(torch.from_numpy(inputs[:,:,window_start:window_end]).cuda(), volatile=True)
-                # features = i3d(ip)
-                features = i3d.forward(ip)
-                # We need to reduce the results across time frames.
-                features = torch.mean(features, dim=2)
+                with torch.no_grad():
+                  ip = Variable(torch.from_numpy(inputs[:,:,window_start:window_end]).cuda())
+                  # features = i3d(ip)
+                  features = i3d.forward(ip)
+                  # We need to reduce the results across time frames.
+                  features = torch.mean(features, dim=2)
                 output_dict["window_" + str(idx)]["scores"] = features.cpu().detach().numpy().flatten().tolist()
                 idx += 1
                 window_start += _WINDOW_STRIDE

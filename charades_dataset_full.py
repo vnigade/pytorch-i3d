@@ -11,6 +11,7 @@ import os
 import os.path
 
 import cv2
+from charades_dataset_vgg import default_loader
 
 def video_to_tensor(pic):
     """Convert a ``numpy.ndarray`` to tensor.
@@ -25,7 +26,7 @@ def video_to_tensor(pic):
     return torch.from_numpy(pic.transpose([3,0,1,2]))
 
 
-def load_rgb_frames(image_dir, vid, start, num):
+def load_rgb_frames(image_dir, vid, start, num, rescale, transforms):
   frames = []
   for i in range(start, start+num):
     img = cv2.imread(os.path.join(image_dir, vid, vid+'-'+str(i).zfill(6)+'.jpg'))[:, :, [2, 1, 0]]
@@ -34,11 +35,15 @@ def load_rgb_frames(image_dir, vid, start, num):
         d = 226.-min(w,h)
         sc = 1+d/min(w,h)
         img = cv2.resize(img,dsize=(0,0),fx=sc,fy=sc)
-    img = (img/255.)*2 - 1
-    frames.append(img)
-  return np.asarray(frames, dtype=np.float32)
 
-def load_flow_frames(image_dir, vid, start, num):
+    if rescale: # rescale values between [-1, 1]
+      img = (img/255.)*2 - 1
+    frames.append(img)
+  imgs = np.asarray(frames, dtype=np.float32)
+  imgs = transforms(imgs)
+  return imgs
+
+def load_flow_frames(image_dir, vid, start, num, rescale, transforms):
   frames = []
   for i in range(start, start+num):
     imgx = cv2.imread(os.path.join(image_dir, vid, vid+'-'+str(i).zfill(6)+'x.jpg'), cv2.IMREAD_GRAYSCALE)
@@ -50,13 +55,28 @@ def load_flow_frames(image_dir, vid, start, num):
         sc = 1+d/min(w,h)
         imgx = cv2.resize(imgx,dsize=(0,0),fx=sc,fy=sc)
         imgy = cv2.resize(imgy,dsize=(0,0),fx=sc,fy=sc)
-    
-    imgx = (imgx/255.)*2 - 1
-    imgy = (imgy/255.)*2 - 1
+   
+    if rescale: # rescale values between [-1, 1] 
+      imgx = (imgx/255.)*2 - 1
+      imgy = (imgy/255.)*2 - 1
     img = np.asarray([imgx, imgy]).transpose([1,2,0])
     frames.append(img)
-  return np.asarray(frames, dtype=np.float32)
+  imgs = np.asarray(frames, dtype=np.float32)
+  imgs = transforms(imgs)
+  return imgs
 
+def load_rgb_vgg(image_dir, vid, start, num, rescale, transforms):
+  frames = []
+  for i in range(start, start+num):
+    file = os.path.join(image_dir, vid, vid+'-'+str(i).zfill(6)+'.jpg') 
+    img = default_loader(file)
+    if transforms is not None:
+      img = transforms(img)
+    # frames.append(np.transpose(img.numpy(), (1, 2, 0)))
+    frames.append(img.numpy())
+  imgs = np.asarray(frames, dtype=np.float32)
+  return imgs
+ 
 
 def make_dataset(split_file, split, root, mode, num_classes=157):
     dataset = []
@@ -89,7 +109,7 @@ def make_dataset(split_file, split, root, mode, num_classes=157):
 
 class Charades(data_utl.Dataset):
 
-    def __init__(self, split_file, split, root, mode, transforms=None, save_dir='', num=0):
+    def __init__(self, split_file, split, root, mode, transforms=None, save_dir='', num=0, rescale=True, model=None):
         
         self.data = make_dataset(split_file, split, root, mode)
         self.split_file = split_file
@@ -97,6 +117,8 @@ class Charades(data_utl.Dataset):
         self.mode = mode
         self.root = root
         self.save_dir = save_dir
+        self.rescale = rescale
+        self.model = model
 
     def __getitem__(self, index):
         """
@@ -110,13 +132,15 @@ class Charades(data_utl.Dataset):
         if os.path.exists(os.path.join(self.save_dir, vid+'.npy')):
             return 0, 0, vid
 
-        if self.mode == 'rgb':
-            imgs = load_rgb_frames(self.root, vid, 1, nf)
+        if self. model == 'vgg16':
+            imgs = load_rgb_vgg(self.root, vid, 1, nf, self.rescale, self.transforms)
         else:
-            imgs = load_flow_frames(self.root, vid, 1, nf)
-
-        imgs = self.transforms(imgs)
-
+            if self.mode == 'rgb':
+                imgs = load_rgb_frames(self.root, vid, 1, nf, self.rescale, self.transforms)
+            else:
+                imgs = load_flow_frames(self.root, vid, 1, nf, self.rescale, self.transforms)
+            # imgs = self.transforms(imgs)
+        
         return video_to_tensor(imgs), torch.from_numpy(label), vid
 
     def __len__(self):
