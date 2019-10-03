@@ -1,4 +1,4 @@
-# I3D models trained on Kinetics
+# I3D models trained on Kinetics and VGG-16 models trained on Charades.
 
 ## Overview
 
@@ -23,3 +23,6 @@ This relied on having the optical flow and RGB frames extracted and saved as ima
 
 ## Feature Extraction
 [extract_features.py](extract_features.py) contains the code to load a pre-trained I3D model and extract the features and save the features as numpy arrays. The [charades_dataset_full.py](charades_dataset_full.py) script loads an entire video to extract per-segment features.
+
+## VGG-16 on Charades dataset
+The code has been borrowed from https://github.com/gsig/charades-algorithms
